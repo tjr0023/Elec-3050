@@ -27,8 +27,8 @@ void  PinSetup () {
 	
     /* Configure PB7-PB0 as row and column pins       */	
 	RCC->AHBENR |= 0x02;    /* Enable GPIOB clock (bit 0) */
-    GPIOB->MODER &=  ~(0x0000FFFF);   /* Clear PB7-PB0 mode bits*/
-	GPIOC->MODER |=  (0x00005500);    /* Set PB7-4 as output bits*/
+  GPIOB->MODER &=  ~(0x0000FFFF);   /* Clear PB7-PB0 mode bits*/
+	GPIOB->MODER |=  (0x00005500);    /* Set PB7-4 as output bits*/
    
     /* Configure PC3-0 as output pins to drive LEDs */
     RCC->AHBENR |=  0x04;            /* Enable GPIOC clock (bit 2) */
@@ -37,7 +37,8 @@ void  PinSetup () {
 
     SYSCFG->EXTICR[0] &= 0xFF0F;     /* Clear EXTI1 fields*/ 
     SYSCFG->EXTICR[0] |= 0x0010;	 /* Set EXTI1 to PA1  */
-    EXTI->FSTR |= 0x0002;			 /* Set EXTI1 to falling-edge triggered*/
+    EXTI->FTSR |= 0x0002;			 /* Set EXTI1 to falling-edge triggered*/
+	  EXTI->RTSR &= 0x0000;			 /* Set EXTI1 to falling-edge triggered*/
     EXTI->IMR |= 0x0002;			 /* Enable EXTI1      */
     EXTI->PR |= 0x0002;				 /* Clear EXTI1 pending status*/
 	
@@ -45,60 +46,67 @@ void  PinSetup () {
 	
 	NVIC_ClearPendingIRQ(EXTI1_IRQn);
 	
-	GPIOB->PUPDR &= ~(0x000000FF);  /*Clear resitor bits for PB3-PB0*/
-	GPIOB->PUPDR |= (0x00000055);   /*Pull-up resistors for PB3-PB0*/
+	GPIOB->PUPDR &= ~(0x0000FFFF);  /*Clear resitor bits for PB3-PB0*/
+	GPIOB->PUPDR |= (0x0000AA55);   /*Pull-up resistors for PB3-PB0*/
 	
-	GPIOB->ODR &= 0x00FF;           /*Set col pins to 0 (PB7-PB4)*/
+	GPIOB->ODR &= 0x0000FF00;           /*Set col pins to 0 (PB7-PB4)*/
+	
 	
    } 
   
    
 void EXTI1_IRQHandler() {
-	XTI->PR |= 0x0002;				/* Clear EXTI1 pending status*/
+	
 	
 	uint8_t row_val;
 	uint8_t col_val;
 	uint8_t key_val;
+	uint8_t col_set;
+	uint8_t temp_row;
 	
 	int i, n;
-	for (i=0; i<200; i++) {         /*T-bounce delay*/
+	for (i=0; i<20000; i++) {         /*T-bounce delay*/
 		n = i;
 	}
 	
-	row_val = (GPIOB->IDR & 0x000F);/*Read and set row value*/
+	row_val = GPIOB->IDR;/*Read and set row value*/
+	row_val &= 0x000F;
 	
-	
-    for (col_val=1; col_val<5; col_val++) {
+    for (col_val=1; col_val<9; col_val=col_val*2) {
+		col_set = ~col_val;
+		col_set &= 0x0F;
 		GPIOB->ODR &= 0xFF0F;
-		GPIOB->ODR |= col_val << 4;
+		GPIOB->ODR |= col_set << 4;
 		
 		int k;                     
 		for (k=0; k<4; k++) {		/*Short propagation delay*/
 			n=k;
 		}
 		
+		temp_row = GPIOB->IDR & 0x000F;
+		
 		/*Check if column value sets appropriate row value*/
-		if (row_val == (GPIOB->IDR & 0x000F)) { 
+		if (row_val == temp_row) { 
 			break;                 /*Break if column value is correct*/
 		}
 		
 	}	
 	
 	//Testing easier method
-	row_val = ~row_val;            /*Switch row_val from one-cold to one-hot*/
+            /*Switch row_val from one-cold to one-hot*/
+	row_val &= 0x0F;
 	
-	key_val = log2(row_val) + col_val;
 	
-/* 	if (row_val == 0x1110) {
+ 	if (row_val == 0b1110) {
 		key_val = 0;
 	}
 	
 	
-	else if (row_val == 0x1101) {
+	else if (row_val == 0b1101) {
 		key_val = 4;
 	}
 	
-	else if (row_val == 0x1011) {
+	else if (row_val == 0b1011) {
 		key_val = 8;
 	}
 	
@@ -106,16 +114,35 @@ void EXTI1_IRQHandler() {
 		key_val = 12;
 	}
 	
-	key_val += col_val; */
+	 if (col_val == 0b0001) {
+		key_val += 1;
+	}
+	
+	
+	else if (col_val == 0b0010) {
+		key_val += 2;
+	}
+	
+	else if (col_val == 0b0100) {
+		key_val += 3;
+	}
+	
+	else {
+		key_val += 4;
+	}
+	
+	GPIOB->ODR &= 0x0000;
+	
 	
 	GPIOC->ODR &= 0xFFF0;
 	GPIOC->ODR |= key_val;
 	
 	hold = 5;
 	
-    for (i=0; i<200; i++) {           /*T-bounce delay*/
+    for (i=0; i<100000; i++) {           /*T-bounce delay*/
 		n=i;
 	}
+	EXTI->PR |= 0x0002;
 	NVIC_ClearPendingIRQ(EXTI1_IRQn);
 }
  
@@ -172,17 +199,6 @@ void countDo() {
 
   } /* repeat forever */ 
   }   
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
   
   
   
