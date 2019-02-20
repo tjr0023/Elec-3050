@@ -1,8 +1,8 @@
 /*=========================================================*/
 /* Victor P. Nelson                                        */
 /* Tyler Robins and Jeremy Doll                            */
-/* ELEC 3040/3050 - Lab 5, Program 1                       */ 
-/* Keypad Interface                                        */
+/* ELEC 3040/3050 - Lab 6, Program 1                       */ 
+/* Keypad Interface with Stopwatch                         */
 /*=========================================================*/ 
 
  
@@ -25,7 +25,7 @@ uint8_t not_set;
 void  PinSetup () {     
     /* Configure PA1 as input pin to read push button */
     RCC->AHBENR |= 0x01;              /* Enable GPIOA clock (bit 0) */
-    GPIOA->MODER    &=  ~(0x0000000C);/* Set PA1 as input mode      */
+    GPIOA->MODER &= ~(0x0000000C);/* Set PA1 as input mode      */
 	
     /* Configure PB7-PB0 as row and column pins       */	
 	RCC->AHBENR |= 0x02;    /* Enable GPIOB clock (bit 0) */
@@ -104,24 +104,24 @@ void EXTI1_IRQHandler() {
 	
 	switch (row_val) 
 	{
-		case 0b1110:
+		case 0b1110: //if row1
 			switch (col_val)
 			{
-				case 0b0001:
+				case 0b0001:  //if col1
 					key_val = 0x1;
-					break;
-				case 0b0010:
+					break;   
+				case 0b0010:  //if col2
 					key_val = 0x2;
 					break;
-				case 0b0100:
+				case 0b0100:  //if col3
 					key_val = 0x3;
 					break;
-				case 0b1000:
+				case 0b1000:  //if col4
 					key_val = 0xA;
 					break;
 			}
 			break;
-		case 0b1101:
+		case 0b1101: //if row2
 			switch (col_val)
 			{
 				case 0b0001:
@@ -138,7 +138,7 @@ void EXTI1_IRQHandler() {
 					break;
 			}
 			break;
-		case 0b1011:
+		case 0b1011: //if row3
 			switch (col_val)
 			{
 				case 0b0001:
@@ -155,7 +155,7 @@ void EXTI1_IRQHandler() {
 					break;
 			}
 			break;
-		case 0b0111:
+		case 0b0111: //if row4
 			switch (col_val)
 			{
 				case 0b0001:
@@ -179,37 +179,36 @@ void EXTI1_IRQHandler() {
 	GPIOB->ODR &= 0x0000;
 	
 	
-	if (key_val == 0) {
+	if (key_val == 0) {      //Do if button 0 pressed
 		
-		if (not_set) {
-			not_set = 0;
-			
-			RCC->APB2ENR |= RCC_APB2ENR_TIM10EN;
-			TIM10->PSC = 2096;
-			TIM10->ARR = 99;
-			TIM10->DIER |= TIM_DIER_UIE;
-			NVIC_EnableIRQ(TIM10_IRQn);
-			TIM10->CR1 |= 0x01;
+		if (not_set) {       //Check if timer has been set up
+			not_set = 0;     //Set not_set to false
+			RCC->APB2ENR |= RCC_APB2ENR_TIM10EN; //Enable the clock for tim10
+			TIM10->PSC = 2096;                   //Set the pre-scale to milliseconds
+			TIM10->ARR = 99;                     //Set Tout = 0.1 s (100 ms)
+			TIM10->DIER |= TIM_DIER_UIE;         //Enable tim10 interrupt
+			NVIC_EnableIRQ(TIM10_IRQn);          //Enable NVIC tim10
+			TIM10->CR1 |= 0x01;                  //Enable timer
 		}
 		
 		if (enable)  {
-			enable = 0;
+			enable = 0;          //Set enable to false
 			TIM10->CR1 &= ~0x01; //disable timer
 			
 		}
 		
-		else {
-			enable = 1;
+		else {  
+			enable = 1;         //Set enable to true
 			TIM10->CR1 |= 0x01; //enable timer
 		}
 		
 	}
-	
-	if (key_val == 1) {
-		if (enable == 0) {
+	  
+	if (key_val == 1) {    //Do if button 1 pressed
+		if (enable == 0) { //Do if already paused
 			count_small == 0;
 			count_big == 0;
-			countDo();
+			countDo();     //Update LEDs
 		}
 	}
 	
@@ -260,7 +259,6 @@ void countDo() {
   count_big = 0;       
   enable = 0;
   not_set = 1;
-  
   __enable_irq(); //Enable interrupts
  
   /* Endless loop */
@@ -269,23 +267,3 @@ void countDo() {
   
   } /* repeat forever */ 
 } 
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
