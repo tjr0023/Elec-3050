@@ -92,43 +92,79 @@ void EXTI1_IRQHandler() {
 		
 	}	
 	
-	//Testing easier method
-            /*Switch row_val from one-cold to one-hot*/
 	row_val &= 0x0F;
 	
 	
- 	if (row_val == 0b1110) {
-		key_val = 0;
-	}
-	
-	
-	else if (row_val == 0b1101) {
-		key_val = 4;
-	}
-	
-	else if (row_val == 0b1011) {
-		key_val = 8;
-	}
-	
-	else {
-		key_val = 12;
-	}
-	
-	 if (col_val == 0b0001) {
-		key_val += 1;
-	}
-	
-	
-	else if (col_val == 0b0010) {
-		key_val += 2;
-	}
-	
-	else if (col_val == 0b0100) {
-		key_val += 3;
-	}
-	
-	else {
-		key_val += 4;
+	switch (row_val) 
+	{
+		case 0b1110: //if row1
+			switch (col_val)
+			{
+				case 0b0001:  //if col1
+					key_val = 0x1;
+					break;   
+				case 0b0010:  //if col2
+					key_val = 0x2;
+					break;
+				case 0b0100:  //if col3
+					key_val = 0x3;
+					break;
+				case 0b1000:  //if col4
+					key_val = 0xA;
+					break;
+			}
+			break;
+		case 0b1101: //if row2
+			switch (col_val)
+			{
+				case 0b0001:
+					key_val = 0x4;
+					break;
+				case 0b0010:
+					key_val = 0x5;
+					break;
+				case 0b0100:
+					key_val = 0x6;
+					break;
+				case 0b1000:
+					key_val = 0xB;
+					break;
+			}
+			break;
+		case 0b1011: //if row3
+			switch (col_val)
+			{
+				case 0b0001:
+					key_val = 0x7;
+					break;
+				case 0b0010:
+					key_val = 0x8;
+					break;
+				case 0b0100:
+					key_val = 0x9;
+					break;
+				case 0b1000:
+					key_val = 0xC;
+					break;
+			}
+			break;
+		case 0b0111: //if row4
+			switch (col_val)
+			{
+				case 0b0001:
+					key_val = 0xE;
+					break;
+				case 0b0010:
+					key_val = 0x0;
+					break;
+				case 0b0100:
+					key_val = 0xF;
+					break;
+				case 0b1000:
+					key_val = 0xD;
+					break;
+			}
+			break;
 	}
 	
 	GPIOB->ODR &= 0x0000;
@@ -198,13 +234,4 @@ void countDo() {
    
 
   } /* repeat forever */ 
-  }   
-  
-  
-  
-  
-  
-  
-  
-  
-  
+} 
