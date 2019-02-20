@@ -56,6 +56,31 @@ void  PinSetup () {
 	
    } 
 
+void countDo() {
+	
+	if (enable) {
+	count_small++;
+	}
+	
+	
+ 	if (count_small == 10) {  //counted up past 10 - reset
+		count_small = 0; 
+		count_big++;
+	}
+	
+	if (count_big == 10) {
+		count_big = 0;
+	}
+
+	
+	/*Display count*/
+	GPIOC->ODR &= 0xFF00;           /*Clear LEDs */
+	GPIOC->ODR |= count_small;			/*Store count*/
+	GPIOC->ODR |= count_big << 4;
+	
+	
+}  
+
 void TIM10_IRQHandler() {   
 	countDo();
 	TIM10->SR &= ~TIM_SR_UIF;
@@ -206,8 +231,8 @@ void EXTI1_IRQHandler() {
 	  
 	if (key_val == 1) {    //Do if button 1 pressed
 		if (enable == 0) { //Do if already paused
-			count_small == 0;
-			count_big == 0;
+			count_small = 0;
+			count_big = 0;
 			countDo();     //Update LEDs
 		}
 	}
@@ -220,32 +245,7 @@ void EXTI1_IRQHandler() {
 	NVIC_ClearPendingIRQ(EXTI1_IRQn);
 }
  
- 
 
-void countDo() {
-	
-	if (enable) {
-	count_small++;
-	}
-	
-	
- 	if (count_small == 10) {  //counted up past 10 - reset
-		count_small = 0; 
-		count_big++;
-	}
-	
-	if (count_big == 10) {
-		count_big = 0;
-	}
-
-	
-	/*Display count*/
-	GPIOC->ODR &= 0xFF00;           /*Clear LEDs */
-	GPIOC->ODR |= count_small;			/*Store count*/
-	GPIOC->ODR |= count_big << 4;
-	
-	
-}  
 
  
   
