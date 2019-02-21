@@ -129,76 +129,75 @@ void EXTI1_IRQHandler() {
 	
 	switch (row_val) 
 	{
-		case 0b1110: //if row1
+		case 0x0E: //if row1
 			switch (col_val)
 			{
-				case 0b0001:  //if col1
+				case 0x01:  //if col1
 					key_val = 0x1;
 					break;   
-				case 0b0010:  //if col2
+				case 0x02:  //if col2
 					key_val = 0x2;
 					break;
-				case 0b0100:  //if col3
+				case 0x04:  //if col3
 					key_val = 0x3;
 					break;
-				case 0b1000:  //if col4
+				case 0x08:  //if col4
 					key_val = 0xA;
 					break;
 			}
 			break;
-		case 0b1101: //if row2
+		case 0x0D: //if row2
 			switch (col_val)
 			{
-				case 0b0001:
+				case 0x01:
 					key_val = 0x4;
 					break;
-				case 0b0010:
+				case 0x02:
 					key_val = 0x5;
 					break;
-				case 0b0100:
+				case 0x04:
 					key_val = 0x6;
 					break;
-				case 0b1000:
+				case 0x08:
 					key_val = 0xB;
 					break;
 			}
 			break;
-		case 0b1011: //if row3
+		case 0x0B: //if row3
 			switch (col_val)
 			{
-				case 0b0001:
+				case 0x01:
 					key_val = 0x7;
 					break;
-				case 0b0010:
+				case 0x02:
 					key_val = 0x8;
 					break;
-				case 0b0100:
+				case 0x04:
 					key_val = 0x9;
 					break;
-				case 0b1000:
+				case 0x08:
 					key_val = 0xC;
 					break;
 			}
 			break;
-		case 0b0111: //if row4
+		case 0x07: //if row4
 			switch (col_val)
 			{
-				case 0b0001:
+				case 0x01:
 					key_val = 0xE;
 					break;
-				case 0b0010:
+				case 0x02:
 					key_val = 0x0;
 					break;
-				case 0b0100:
+				case 0x04:
 					key_val = 0xF;
 					break;
-				case 0b1000:
+				case 0x08:
 					key_val = 0xD;
 					break;
 			}
 			break;
 	}
-	
 	
 	
 	GPIOB->ODR &= 0x0000;
