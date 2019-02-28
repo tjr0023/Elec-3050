@@ -57,7 +57,7 @@ void  PinSetup () {
 	TIM10->PSC = 0   ;                   //Set the pre-scale to milliseconds
 	TIM10->ARR = 2096;                   //Set for 1 KHz PWM
 	TIM10->CCMR1 = 0x60;                 //Set CCMR1 bits
-	TIM10->CCER = 0x0002;                //Set CCER bits
+	TIM10->CCER = 0x0001;                //Set CCER bits
 	TIM10->CCR1 = 0;                     //Set duty cycle to 0%
 	TIM10->DIER |= TIM_DIER_UIE;         //Enable tim10 interrupt
 	NVIC_EnableIRQ(TIM10_IRQn);          //Enable NVIC tim10
@@ -211,10 +211,6 @@ void EXTI1_IRQHandler() {
  int main(void) {
 
   PinSetup();     //Configure GPIO pins
-  count_small = 0;      
-  count_big = 0;       
-  enable = 0;
-  not_set = 1;
   __enable_irq(); //Enable interrupts
  
   /* Endless loop */
