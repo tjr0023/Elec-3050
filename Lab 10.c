@@ -75,24 +75,24 @@ void  PinSetup () {
 	TIM10->CR1 |= 0x01;                  //Enable timer
 
 					
-	RCC->APB2ENR |= RCC_APB2ENR_TIM11EN; //Enable the clock for tim11
-	TIM11->PSC = 31;                   //Set the pre-scale to milliseconds
-	TIM11->ARR = 65535;                   //Set for 1 KHz PWM
-	TIM11->CCMR1 |= 0x01;                 //Set CCMR1 bits
-	TIM11->CCER |= 0x0003;                //Set CCER bits
-	TIM11->CR1 |= 0x0001;                     //Set duty cycle to 0%
-	TIM11->DIER |= 0x0003;         //Enable tim10 interrupt
-	NVIC_EnableIRQ(TIM11_IRQn);          //Enable NVIC tim10
+	//RCC->APB2ENR |= RCC_APB2ENR_TIM11EN; //Enable the clock for tim11
+	//TIM11->PSC = 31;                   //Set the pre-scale to milliseconds
+	//TIM11->ARR = 65535;                   //Set for 1 KHz PWM
+	//TIM11->CCMR1 |= 0x01;                 //Set CCMR1 bits
+	//TIM11->CCER |= 0x0003;                //Set CCER bits
+	//TIM11->CR1 |= 0x0001;                     //Set duty cycle to 0%
+	//TIM11->DIER |= 0x0003;         //Enable tim10 interrupt
+	//NVIC_EnableIRQ(TIM11_IRQn);          //Enable NVIC tim10
 	
 	//Set up the ADC converter
-	
+	RCC->CR |= RCC_CR_HSION;
 	RCC->APB2ENR |= RCC_APB2ENR_ADC1EN; //enable ADC
 	ADC1->CR2 |= 1;						//turn on ADC
 	//ADC1->CR1 |= 0x03000000;			//change resolution to 6 bits
 	ADC1->SMPR1 |= 0;					//set to 4 cycles
 	ADC1->SQR5 &= ~ADC_SQR5_SQ1;		//clear SQ1 bits
-	ADC1->SQR5 |= 0X00000003;           //choose channel 3
-	while((ADC1->SR & 0x020) == 0) {};  //wait for ADC to power on
+	ADC1->SQR5 |= 0X00000002;           //choose channel 3
+	while((ADC1->SR & 0x040) == 0) {};  //wait for ADC to power on
 	
 	
    } 
@@ -109,8 +109,9 @@ void TIM11_IRQHandler() {
 
 void convert() {
 	ADC1->CR2 |= ADC_CR2_SWSTART; //starts conversion
-	while ((ADC1->SR & 0x02) == 0)(); //wait 
+	while ((ADC1->SR & 0x0040) == 0){}; //wait 
 	motor_v = ADC1->DR;
+	motor_v = motor_v * ((float) 3 / 4096);
 	//ADC1->CR2 = 0; //turn off ADC
 	v_acc += motor_v;
 	v_counter++;
