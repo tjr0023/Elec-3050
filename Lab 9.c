@@ -11,7 +11,7 @@
 /* Define global variables */ 
  
  
-uint8_t duty_cycle[11] = {0, 210, 419, 629, 839, 1049, 
+uint16_t duty_cycle[11] = {0, 210, 419, 629, 839, 1049, 
 1258, 1468, 1678, 1887, 2097};
 
 float signal_period;
@@ -24,11 +24,12 @@ float signal_period;
 /*       PC3-PC0 = Count LEDs               */ 
 /*---------------------------------------------------*/ 
 void  PinSetup () {     
+
     /* Configure PA1 as input pin to read push button */
     RCC->AHBENR |= 0x01;              /* Enable GPIOA clock (bit 0) */
     GPIOA->MODER &= ~(0x0000F00C);    /* Set PA1 as input mode & Clear PA6 */
-	GPIOA->MODER |= 0x0000A000;       /* Set PA6 to AF mode */
-	GPIOA->AFR[0] &= ~(0xFF000000);    /* Clear AFRL6 & AFRL7*/
+	GPIOA->MODER |= 0x0000A000;    /* Set PA6 to AF mode */
+	GPIOA->AFR[0] &= ~(0xFF000000);    /* Clear AFRL6 */
 	GPIOA->AFR[0] |= 0x33000000;       /* PA6 = AF3 */
 	GPIOA->PUPDR &= ~(0x0000F000);    //clear pull up/down status on PA7
 	GPIOA->PUPDR |= 0x00004000;       //set pull up resistor for PA7
@@ -60,21 +61,22 @@ void  PinSetup () {
 	GPIOB->ODR &= 0x0000FF00;           /*Set col pins to 0 (PB7-PB4)*/
 	
 	RCC->APB2ENR |= RCC_APB2ENR_TIM10EN; //Enable the clock for tim10
-	TIM10->PSC = 0   ;                   //Set the pre-scale to milliseconds
+	TIM10->PSC = 0;                   //Set the pre-scale to milliseconds
 	TIM10->ARR = 2096;                   //Set for 1 KHz PWM
 	TIM10->CCMR1 = 0x60;                 //Set CCMR1 bits
-	TIM10->CCER = 0x0002;                //Set CCER bits
+	TIM10->CCER = 0x0001;                //Set CCER bits
 	TIM10->CCR1 = 0;                     //Set duty cycle to 0%
 	TIM10->DIER |= TIM_DIER_UIE;         //Enable tim10 interrupt
 	NVIC_EnableIRQ(TIM10_IRQn);          //Enable NVIC tim10
 	TIM10->CR1 |= 0x01;                  //Enable timer
+
 					
 	RCC->APB2ENR |= RCC_APB2ENR_TIM11EN; //Enable the clock for tim11
 	TIM11->PSC = 31;                   //Set the pre-scale to milliseconds
 	TIM11->ARR = 65535;                   //Set for 1 KHz PWM
-	TIM11->CCMR1 |= 0xFD;                 //Set CCMR1 bits
+	TIM11->CCMR1 |= 0x01;                 //Set CCMR1 bits
 	TIM11->CCER |= 0x0003;                //Set CCER bits
-	TIM11->CCR1 |= 0x0001;                     //Set duty cycle to 0%
+	TIM11->CR1 |= 0x0001;                     //Set duty cycle to 0%
 	TIM11->DIER |= 0x0003;         //Enable tim10 interrupt
 	NVIC_EnableIRQ(TIM11_IRQn);          //Enable NVIC tim10
 	
@@ -85,7 +87,7 @@ void TIM10_IRQHandler() {
 }
 
 void TIM11_IRQHandler() {   
-	signal_period = (double)((TIM11->CCR1)*4)/16000000;
+	signal_period = (double)((TIM11->CCR1)*31)/(2097000);
 	TIM11->CNT=0;
 	TIM11->SR &= ~TIM_SR_UIF;
 }
@@ -229,10 +231,7 @@ void EXTI1_IRQHandler() {
  int main(void) {
 
   PinSetup();     //Configure GPIO pins
-  count_small = 0;      
-  count_big = 0;       
-  enable = 0;
-  not_set = 1;
+
   __enable_irq(); //Enable interrupts
  
   /* Endless loop */
