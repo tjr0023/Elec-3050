@@ -15,8 +15,8 @@ uint16_t duty_cycle[11] = {0, 210, 419, 629, 839, 1049,
 1258, 1468, 1678, 1887, 2097};
 
 uint8_t enable;
-float counter;
-float key_index;
+uint8_t counter;
+uint8_t key_index;
 
 float keys[200];
 
@@ -105,15 +105,18 @@ void  PinSetup () {
    } 
 
 void TIM10_IRQHandler() {   
-	TIM10->SR &= ~TIM_SR_UIF;
 	
-	if (enable) {
+	counter++;
+	
+		if (enable == 1) {
+		
 		if (key_index == 200) {
 			enable = 0;
+			key_index = 0;
 		}
 		
 		else {
-			if (++counter >= 10) {
+			if (counter >= 10) {
 				keys[key_index++] = v_avg;
 				counter = 0;
 				
@@ -121,6 +124,8 @@ void TIM10_IRQHandler() {
 			
 		}
 	}
+	
+	TIM10->SR &= ~TIM_SR_UIF;
 }
 
 void TIM11_IRQHandler() {   
@@ -137,7 +142,7 @@ void convert() {
 	//ADC1->CR2 = 0; //turn off ADC
 	v_acc += motor_v;
 	v_counter++;
-	if (v_counter == 1000) {
+	if (v_counter == 30) {
 		v_avg = v_acc/v_counter;
 		v_acc = 0;
 		v_counter = 0;
@@ -298,6 +303,7 @@ void EXTI1_IRQHandler() {
   /* Endless loop */
   while (1) {        
 	//wait for keypad
+
 	convert();
   } /* repeat forever */ 
 }
