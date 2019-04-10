@@ -14,6 +14,9 @@
 uint16_t duty_cycle[11] = {0, 734, 839, 945, 1049, 1153, 
 1258, 1363, 1468, 1573, 1678};
 
+float voltages[11] = {0, 0.5, 0.72, 0.95, 1.15, 1.34, 
+1.52, 1.70, 1.85, 1.98, 2.08};
+
 uint8_t enable;
 uint8_t counter;
 uint8_t key_index;
@@ -22,6 +25,9 @@ uint8_t count_small;
 uint8_t count_extra_small;
 uint8_t count_big;
 uint8_t count_enable;
+uint8_t v_steady;
+
+uint16_t watchdog;
 
 float keys[200];
 
@@ -31,6 +37,9 @@ float motor_v;
 float v_acc;
 float v_avg;
 float v_counter;
+float v_sample;
+float v_diff;
+float v_expected;
  
 /*---------------------------------------------------*/ 
 /* Initialize GPIO pins used in the program */ 
@@ -92,7 +101,7 @@ void  PinSetup () {
 	TIM11->ARR = 2096;                   //Set for 100 Hz PWM
 	TIM11->DIER |= TIM_DIER_UIE;         //Enable tim11 interrupt
 	NVIC_EnableIRQ(TIM11_IRQn);          //Enable NVIC tim10
-	
+	TIM11->CR1 = 0x01;                   //Enable timer
 	//Set up the ADC converter
 	RCC->CR |= RCC_CR_HSION;
 	RCC->APB2ENR |= RCC_APB2ENR_ADC1EN; //enable ADC
@@ -144,23 +153,44 @@ void TIM10_IRQHandler() {
 void TIM11_IRQHandler() {   
 	countDo();
 	
+	if (v_steady) {
 	
-	if (enable == 1) {
-		
-	if (key_index == 200) {
-		enable = 0;
-		key_index = 0;
+	v_sample = v_avg;
+	v_diff = v_sample - v_expected;
+	if (v_diff > 0.05) {
+		TIM10->CCR1 = TIM10->CCR1 - 1;
+	}
+	
+	if (v_diff < -0.05) {
+		TIM10->CCR1 = TIM10->CCR1 + 1;
+	}
 	}
 	
 	else {
-		keys[key_index++] = v_avg;
-		counter = 0;
+			v_sample = v_avg;
+			v_diff = v_sample - v_expected;
+			if (v_diff < 0.03 && v_diff > -0.03) {
+				v_steady = 1;
+			}
+			watchdog--;
+			if (watchdog == 0) {
+				v_steady = 1;
+			}
 	}
 	
-	}
-	
-	
-	
+//	if (enable == 1) {
+//		
+//	if (key_index == 200) {
+//		enable = 0;
+//		key_index = 0;
+//	}
+//	
+//	else {
+//		keys[key_index++] = v_avg;
+//		counter = 0;
+//	}
+//	
+//	}
 	TIM11->SR &= ~TIM_SR_UIF;
 }
 
@@ -189,7 +219,7 @@ void EXTI1_IRQHandler() {
 	uint8_t temp_row;
 	
 	int i, n;
-	for (i=0; i<20000; i++) {         /*T-bounce delay*/
+	for (i=0; i<3000; i++) {         /*T-bounce delay*/
 		n = i;
 	}
 	
@@ -300,6 +330,9 @@ void EXTI1_IRQHandler() {
 	if (key_val < 0x0B) {      
 		
 		TIM10->CCR1 = duty_cycle[key_val];
+		v_expected = voltages[key_val];
+		v_steady = 0;
+		watchdog = 150;
 		key_index = 0;
 		counter = 0;
 		enable = 1;
@@ -308,7 +341,7 @@ void EXTI1_IRQHandler() {
 		
 	}
 	
-	else if (key_val = 0x0B) {
+	else if (key_val == 0x0B) {
 		if (count_enable) {
 			count_enable = 0;
 		}
@@ -318,8 +351,8 @@ void EXTI1_IRQHandler() {
 		}
 	}
 	
-	else if (key_val = 0x0C) {
-		if (count_enable = 0) {
+	else if (key_val == 0x0C) {
+		if (count_enable == 0) {
 			count_small = 0;
 			count_big = 0;
 			countDo();
@@ -328,7 +361,7 @@ void EXTI1_IRQHandler() {
 	}
 	
 	
-    for (i=0; i<20000; i++) {           /*T-bounce delay*/
+    for (i=0; i<50000; i++) {           /*T-bounce delay*/
 		n=i;
 	}
 	EXTI->PR |= 0x0002;
@@ -341,7 +374,7 @@ void EXTI1_IRQHandler() {
  /*------------------------------------------------*/
  int main(void) {
 
-  PinSetup();     //Configure GPIO pins
+	 PinSetup();     //Configure GPIO pins
   
   enable = 0;
   counter = 0;
