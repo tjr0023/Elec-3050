@@ -20,6 +20,8 @@ float voltages[11] = {0, 0.5, 0.72, 0.95, 1.15, 1.34,
 uint8_t enable;
 uint8_t counter;
 uint8_t key_index;
+uint8_t overshot;
+uint8_t v_diff_sign;
 
 uint8_t count_small;
 uint8_t count_extra_small;
@@ -41,6 +43,7 @@ float v_counter;
 float v_sample;
 float v_diff;
 float v_expected;
+
  
 /*---------------------------------------------------*/ 
 /* Initialize GPIO pins used in the program */ 
@@ -67,8 +70,8 @@ void  PinSetup () {
    
     /* Configure PC3-0 as output pins to drive LEDs */
     RCC->AHBENR |=  0x04;            /* Enable GPIOC clock (bit 2) */
-    GPIOC->MODER &= ~(0x0000FFFF);   /* Clear PC7-PC0 mode bits    */
-    GPIOC->MODER |=  (0x00005555);   /* General purpose output mode*/
+    GPIOC->MODER &= ~(0x0003FFFF);   /* Clear PC7-PC0 mode bits    */
+    GPIOC->MODER |=  (0x00015555);   /* General purpose output mode*/
 
     SYSCFG->EXTICR[0] &= 0xFF0F;     /* Clear EXTI1 fields*/ 
     SYSCFG->EXTICR[0] |= 0x0010;	 /* Set EXTI1 to PA1  */
@@ -87,7 +90,7 @@ void  PinSetup () {
 	GPIOB->ODR &= 0x0000FF00;           /*Set col pins to 0 (PB7-PB4)*/
 	
 	RCC->APB2ENR |= RCC_APB2ENR_TIM10EN; //Enable the clock for tim10
-	TIM10->PSC = 0;                      //Set the pre-scale to milliseconds
+	TIM10->PSC = 9;                      //Set the pre-scale to milliseconds
 	TIM10->ARR = 2096;                   //Set for 1 KHz PWM
 	TIM10->CCMR1 = 0x60;                 //Set CCMR1 bits
 	TIM10->CCER = 0x0001;                //Set CCER bits
@@ -106,8 +109,8 @@ void  PinSetup () {
 
 					
 	RCC->APB2ENR |= RCC_APB2ENR_TIM11EN; //Enable the clock for tim11
-	TIM11->PSC = 0;                      //Set the pre-scale to ten milliseconds
-	TIM11->ARR = 0x1FFF;                   //Set for 100 Hz PWM
+	TIM11->PSC = 9;                      //Set the pre-scale to ten milliseconds
+	TIM11->ARR = 2110;                   //Set for 100 Hz PWM
 	TIM11->DIER |= TIM_DIER_UIE;         //Enable tim11 interrupt
 	NVIC_EnableIRQ(TIM11_IRQn);          //Enable NVIC tim10
 	TIM11->CR1 = 0x01;                   //Enable timer
@@ -156,52 +159,20 @@ void countDo() {
 
 void sample() {
 	//v_sample = v_avg;
-	v_diff = v_expected - v_avg;
-	
-	//Hit value as fast as possible
-	if (v_diff > 0.8) {
-		TIM10->CCR1 = 2096;
-	}
-	
-	else if (v_diff < -0.8) {
-		TIM10->CCR1 = 0;
-	}
-	
-	//Within range, slow down
-	else if (v_diff > 0.5) {
-		TIM10->CCR1 = (2096 - goal_duty)/2 + goal_duty;
-	}
-	
-	else if (v_diff < -0.5) {
-		TIM10->CCR1 = goal_duty/2;
-	}
-	
-	//Handle load
-	else if (v_diff > 0.2) {
-		TIM10->CCR1 = TIM10->CCR1 + 100;
-	}
-	
-	else if (v_diff < -0.2 && v_expected > 0) {
-		TIM10->CCR1 = TIM10->CCR1 - 100;
-	}
-	
-	//really close - narrow down
-	else if (v_diff > 0.1) {
-		TIM10->CCR1 = TIM10->CCR1 + 50;
-	}
-	
-	else if (v_diff < -0.1 && v_expected > 0) {
-		TIM10->CCR1 = TIM10->CCR1 - 50;
-	}
-	
-	//ultra close - fine tune
-	else if (v_diff > 0.05) {
-		TIM10->CCR1 = TIM10->CCR1 + 1;
-	}
-	
-	else if (v_diff < -0.05 && v_expected > 0) {
-		TIM10->CCR1 = TIM10->CCR1 - 1;
-	}
+		
+//		
+//	v_diff = v_expected - v_avg;
+//	
+//	
+//	//ultra close - fine tune
+//	if (v_diff > 0.1) {
+//		TIM10->CCR1 = TIM10->CCR1 + 10;
+//	}
+//	
+//	else if (v_diff < -0.1) {
+//		TIM10->CCR1 = TIM10->CCR1 - 10;
+//	}
+
 	
 	
 	
@@ -209,17 +180,16 @@ void sample() {
 	
 	
 	
-	
-/* 	if (v_steady) {
+ 	if (v_steady) {
 	
 	v_sample = v_avg;
 	v_diff = v_sample - v_expected;
 	if (v_diff > 0.05) {
-		TIM10->CCR1 = TIM10->CCR1 - 1;
+		TIM10->CCR1 = TIM10->CCR1 - 5;
 	}
 	
 	if (v_diff < -0.05) {
-		TIM10->CCR1 = TIM10->CCR1 + 1;
+		TIM10->CCR1 = TIM10->CCR1 + 5;
 	}
 	}
 	
@@ -233,7 +203,7 @@ void sample() {
 			if (watchdog == 0) {
 				v_steady = 1;
 			}
-	} */
+	} 
 	
 //	if (enable == 1) {
 //		
@@ -259,6 +229,7 @@ void TIM10_IRQHandler() {
 void TIM11_IRQHandler() {   
 	countDo();
 	sample();
+	GPIOC->ODR ^= 1UL << 8;
 	TIM11->SR &= ~TIM_SR_UIF;
 }
 
@@ -270,7 +241,7 @@ void convert() {
 	//ADC1->CR2 = 0; //turn off ADC
 	v_acc += motor_v;
 	v_counter++;
-	if (v_counter == 30) {
+	if (v_counter == 50) {
 		v_avg = v_acc/v_counter;
 		v_acc = 0;
 		v_counter = 0;
@@ -397,14 +368,17 @@ void EXTI1_IRQHandler() {
 	
 	if (key_val < 0x0B) {      
 		
-		goal_duty = duty_cycle[key_val];
+		TIM10->CCR1 = duty_cycle[key_val];
 		v_expected = voltages[key_val];
-		//v_steady = 0;
-		//watchdog = 150;
+		v_steady = 0;
+		watchdog = 150;
+		overshot = 0;
 		key_index = 0;
 		counter = 0;
 		enable = 1;
 		keys[key_index++] = v_avg;
+
+		
 		sample();
 		
 	}
@@ -460,4 +434,3 @@ void EXTI1_IRQHandler() {
 	convert();
   } /* repeat forever */ 
 }
-
