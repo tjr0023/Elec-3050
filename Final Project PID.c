@@ -11,8 +11,8 @@
 /* Define global variables */ 
  
  
-uint16_t duty_cycle[11] = {0, 734, 839, 945, 1049, 1153, 
-1258, 1363, 1468, 1573, 1678};
+uint16_t duty_cycle[11] = {0, 560, 640, 720, 800, 880, 
+960, 1040, 1120, 1200, 1280};
 
 float voltages[11] = {0, 0.5, 0.72, 0.95, 1.15, 1.34, 
 1.52, 1.70, 1.85, 1.98, 2.08};
@@ -54,6 +54,10 @@ float v_expected;
 /*---------------------------------------------------*/ 
 void  PinSetup () {     
 
+	RCC->CR |= RCC_CR_HSION;             // Turn on 16MHz HSI oscillator
+	while((RCC->CR & RCC_CR_HSIRDY) == 0);   // Wait until HSI ready
+	RCC->CFGR |= RCC_CFGR_SW_HSI;  		// Select HSI as system clock
+
     /* Configure PA1 as input pin to read push button */
     RCC->AHBENR |= 0x01;              /* Enable GPIOA clock (bit 0) */
     GPIOA->MODER &= ~(0x0000F0FF);    /* Set PA1 as input mode & Clear PA6 */
@@ -90,8 +94,8 @@ void  PinSetup () {
 	GPIOB->ODR &= 0x0000FF00;           /*Set col pins to 0 (PB7-PB4)*/
 	
 	RCC->APB2ENR |= RCC_APB2ENR_TIM10EN; //Enable the clock for tim10
-	TIM10->PSC = 9;                      //Set the pre-scale to milliseconds
-	TIM10->ARR = 2096;                   //Set for 1 KHz PWM
+	TIM10->PSC = 0;                      //Set the pre-scale to milliseconds
+	TIM10->ARR = 1599;                   //Set for 1 KHz PWM
 	TIM10->CCMR1 = 0x60;                 //Set CCMR1 bits
 	TIM10->CCER = 0x0001;                //Set CCER bits
 	TIM10->CCR1 = 0;                     //Set duty cycle to 0%
@@ -109,8 +113,8 @@ void  PinSetup () {
 
 					
 	RCC->APB2ENR |= RCC_APB2ENR_TIM11EN; //Enable the clock for tim11
-	TIM11->PSC = 9;                      //Set the pre-scale to ten milliseconds
-	TIM11->ARR = 2110;                   //Set for 100 Hz PWM
+	TIM11->PSC = 99;                      //Set the pre-scale to ten milliseconds
+	TIM11->ARR = 1599;                   //Set for 100 Hz PWM
 	TIM11->DIER |= TIM_DIER_UIE;         //Enable tim11 interrupt
 	NVIC_EnableIRQ(TIM11_IRQn);          //Enable NVIC tim10
 	TIM11->CR1 = 0x01;                   //Enable timer
@@ -185,11 +189,11 @@ void sample() {
 	v_sample = v_avg;
 	v_diff = v_sample - v_expected;
 	if (v_diff > 0.05) {
-		TIM10->CCR1 = TIM10->CCR1 - 5;
+		TIM10->CCR1 = TIM10->CCR1 - 1;
 	}
 	
 	if (v_diff < -0.05) {
-		TIM10->CCR1 = TIM10->CCR1 + 5;
+		TIM10->CCR1 = TIM10->CCR1 + 1;
 	}
 	}
 	
@@ -409,7 +413,6 @@ void EXTI1_IRQHandler() {
 	EXTI->PR |= 0x0002;
 	NVIC_ClearPendingIRQ(EXTI1_IRQn);
 }
-  
   
 /*------------------------------------------------*/
 /* Main program                                        */
