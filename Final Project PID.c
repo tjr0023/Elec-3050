@@ -11,8 +11,8 @@
 /* Define global variables */ 
  
  
-uint16_t duty_cycle[11] = {0, 560, 640, 720, 800, 880, 
-960, 1040, 1120, 1200, 1280};
+uint16_t duty_cycle[11] = {0, 690, 790, 890, 990, 1090, 
+1155, 1255, 1355, 1455, 1555};
 
 float voltages[11] = {0, 0.5, 0.72, 0.95, 1.15, 1.34, 
 1.52, 1.70, 1.85, 1.98, 2.08};
@@ -85,6 +85,7 @@ void  PinSetup () {
     EXTI->PR |= 0x0002;				 /* Clear EXTI1 pending status*/
 	
 	NVIC_EnableIRQ(EXTI1_IRQn);
+	NVIC_SetPriority(EXTI1_IRQn,1);
 	
 	NVIC_ClearPendingIRQ(EXTI1_IRQn);
 	
@@ -101,6 +102,7 @@ void  PinSetup () {
 	TIM10->CCR1 = 0;                     //Set duty cycle to 0%
 	TIM10->DIER |= TIM_DIER_UIE;         //Enable tim10 interrupt
 	NVIC_EnableIRQ(TIM10_IRQn);          //Enable NVIC tim10
+	NVIC_SetPriority(TIM10_IRQn, 1);     //Enable NVIC tim10
 	TIM10->CR1 |= 0x01;                  //Enable timer
 	
 /* 	RCC->APB1ENR |= RCC_APB2ENR_TIM6EN; //Enable the clock for tim10
@@ -230,12 +232,7 @@ void TIM10_IRQHandler() {
 	TIM10->SR &= ~TIM_SR_UIF;
 }
 
-void TIM11_IRQHandler() {   
-	countDo();
-	sample();
-	GPIOC->ODR ^= 1UL << 8;
-	TIM11->SR &= ~TIM_SR_UIF;
-}
+
 
 void convert() {
 	ADC1->CR2 |= ADC_CR2_SWSTART; //starts conversion
@@ -243,13 +240,20 @@ void convert() {
 	motor_v = ADC1->DR;
 	motor_v = motor_v * ((float) 3 / 4096);
 	//ADC1->CR2 = 0; //turn off ADC
-	v_acc += motor_v;
-	v_counter++;
-	if (v_counter == 50) {
-		v_avg = v_acc/v_counter;
-		v_acc = 0;
-		v_counter = 0;
-	}
+	v_avg = motor_v;
+	//v_counter++;
+	//if (v_counter == 50) {
+	//	v_avg = v_acc/v_counter;
+	//	v_acc = 0;
+	//	v_counter = 0;
+	//}
+}
+void TIM11_IRQHandler() {  
+	convert();
+	countDo();
+	sample();
+	GPIOC->ODR ^= 1UL << 8;
+	TIM11->SR &= ~TIM_SR_UIF;
 }
    
 void EXTI1_IRQHandler() {
@@ -262,7 +266,7 @@ void EXTI1_IRQHandler() {
 	uint8_t temp_row;
 	
 	int i, n;
-	for (i=0; i<3000; i++) {         /*T-bounce delay*/
+	for (i=0; i<150000; i++) {         /*T-bounce delay*/
 		n = i;
 	}
 	
@@ -407,7 +411,7 @@ void EXTI1_IRQHandler() {
 	}
 	
 	
-    for (i=0; i<50000; i++) {           /*T-bounce delay*/
+    for (i=0; i<1000000; i++) {           /*T-bounce delay*/
 		n=i;
 	}
 	EXTI->PR |= 0x0002;
@@ -418,7 +422,6 @@ void EXTI1_IRQHandler() {
 /* Main program                                        */
  /*------------------------------------------------*/
  int main(void) {
-
 	 PinSetup();     //Configure GPIO pins
   
   enable = 0;
@@ -433,7 +436,5 @@ void EXTI1_IRQHandler() {
  
   /* Endless loop */
   while (1) {        
-
-	convert();
   } /* repeat forever */ 
 }
